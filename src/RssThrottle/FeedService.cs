@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using CodeHollow.FeedReader;
 using WilderMinds.RssSyndication;
@@ -100,7 +101,10 @@ namespace RssThrottle
                 });
             }
 
-            var result = outputFeed.Serialize();
+            var result = outputFeed.Serialize(new SerializeOption
+            {
+                Encoding = Encoding.UTF8
+            });
 
             if (parameters.Mode == Parameters.Modes.Delay)
                 await _cache.CacheAsync(parameters, nextDelay, result);
