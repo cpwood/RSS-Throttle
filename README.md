@@ -209,13 +209,13 @@ The easiest way of achieving this is by excluding all weekend news published bet
 
 ## Caching Delayed Output Feeds
 
-The `FeedService` constructor has an optional `ICache` parameter that allows you to provide the included [`BlobStorageCache`](./src/BlobStorageCache.cs) implementation or your own custom `ICache` implementation. This is used in the `Delay` mode of operation only.
+The `FeedService` constructor has an optional `ICache` parameter that allows you to provide the included [`BlobStorageCache`](https://github.com/cpwood/RSS-Throttle/blob/main/src/RssThrottle/BlobStorageCache.cs) implementation or your own custom `ICache` implementation. This is used in the `Delay` mode of operation only.
 
 This can be used to improve performance - i.e. so you don't have to generate the output feed from scratch each time - and also to bring a little extra reliability to the handling of input feeds. 
 
 Since RSS Throttle is very reliant on publication `datetime` values in the input feeds, and since not all content platforms publish *consistent*, *unchanging* publication date values, using a cache may mean you don't get *slightly* different content each time you generate the output feed and will also mean you don't get content "leaking through" during periods you want to be quiet.
 
-If you'd like to write your own `ICache` provider, take a look at the [Azure Blob Storage provider](./src/BlobStorageCache.cs) for inspiration.
+If you'd like to write your own `ICache` provider, take a look at the [Azure Blob Storage provider](https://github.com/cpwood/RSS-Throttle/blob/main/src/RssThrottle/BlobStorageCache.cs) for inspiration.
 
 ## Output feed titles, descriptions, copyright, etc
 
