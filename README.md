@@ -19,7 +19,7 @@ For example:
 
 I can now limit the amount of stories I read and can control when they drop into my reader app. I also know there’s no point in me continually refreshing to try and get another dopamine hit of fresh content .
 
-I use this package as part of an [Azure Function](#1).
+I use this package as part of an [Azure Function](https://github.com/cpwood/RSS-Throttle/tree/releases/1.0/src/AzureFunction).
 
 ## `When` values: Day and Hour Notation
 These values are an important basic unit of how RSS Throttle works. They use a combination of day numbers (1-7) and hour numbers (00-23) either side of a “T”.
