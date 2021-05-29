@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using CodeHollow.FeedReader;
 
-namespace RssThrottle
+namespace RssThrottle.Feeds
 {
     public interface IFeedReader
     {

@@ -4,8 +4,9 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
+using RssThrottle.Feeds;
 
-namespace RssThrottle
+namespace RssThrottle.Caching
 {
     public class BlobStorageCache : ICache
     {

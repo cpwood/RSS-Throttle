@@ -1,7 +1,8 @@
-using RssThrottle;
+using RssThrottle.Feeds;
+using RssThrottle.Time;
 using Xunit;
 
-namespace Tests
+namespace Tests.Time
 {
     public class WhenParserValidationTests
     {

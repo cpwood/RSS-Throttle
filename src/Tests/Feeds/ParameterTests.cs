@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using RssThrottle;
+using RssThrottle.Feeds;
 using Xunit;
 
-namespace Tests
+namespace Tests.Feeds
 {
     public class ParameterTests
     {

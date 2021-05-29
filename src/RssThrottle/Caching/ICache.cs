@@ -1,7 +1,8 @@
 using System;
 using System.Threading.Tasks;
+using RssThrottle.Feeds;
 
-namespace RssThrottle
+namespace RssThrottle.Caching
 {
     public interface ICache
     {

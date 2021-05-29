@@ -2,7 +2,7 @@ using System;
 using NodaTime;
 using NodaTime.Extensions;
 
-namespace RssThrottle
+namespace RssThrottle.Time
 {
     public class DateTimeProvider : IDateTimeProvider
     {

@@ -4,8 +4,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
 using NodaTime;
+using RssThrottle.Time;
 
-namespace RssThrottle
+namespace RssThrottle.Feeds
 {
     public class Parameters
     {

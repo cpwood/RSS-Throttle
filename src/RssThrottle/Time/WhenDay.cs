@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace RssThrottle
+namespace RssThrottle.Time
 {
     public class WhenDay
     {

@@ -1,12 +1,12 @@
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using CodeHollow.FeedReader;
-using WilderMinds.RssSyndication;
-using Feed = WilderMinds.RssSyndication.Feed;
+using RssThrottle.Caching;
+using RssThrottle.Time;
 
-namespace RssThrottle
+namespace RssThrottle.Feeds
 {
     public class FeedService
     {
@@ -31,26 +31,17 @@ namespace RssThrottle
             _provider = provider;
         }
         
-        public async Task<string> ProcessAsync(Parameters parameters)
+        public async Task<FeedResult> ProcessAsync(Parameters parameters)
         {
             if (parameters.Mode == Parameters.Modes.Delay)
             {
-                var rss = await _cache.GetFromCacheAsync(parameters);
-                if (!string.IsNullOrEmpty(rss))
-                    return rss;
+                var cached = await _cache.GetFromCacheAsync(parameters);
+                if (!string.IsNullOrEmpty(cached))
+                    return new FeedResult(cached);
             }
 
             var nextDelay = DateTime.MinValue;
             var inputFeed = await _feedReader.ReadAsync(parameters.Url);
-            
-            var outputFeed = new Feed
-            {
-                Title = inputFeed.Title,
-                Description = inputFeed.Description,
-                Link = new Uri(inputFeed.Link),
-                Copyright = inputFeed.Copyright,
-                Language = inputFeed.Language
-            };
 
             FeedItem[] items;
             
@@ -60,56 +51,32 @@ namespace RssThrottle
                 var delayUntil = GetLastDelayEndUtc(whenDays, parameters.Timezone);
                 nextDelay = GetNextDelayEndUtc(whenDays, parameters.Timezone);
                 items = inputFeed.Items
-                    .Where(x => x.PublishingDate != null && x.PublishingDate.Value <= delayUntil)
+                    .Where(x => x.GetDate(delayUntil) <= delayUntil)
                     .ToArray();
             }
             else if (parameters.Mode == Parameters.Modes.Include)
             {
                 var whenDays = WhenParser.Unpack(parameters.When, Parameters.Modes.Include);
                 items = inputFeed.Items.Where(x =>
-                        x.PublishingDate != null &&
-                        IsWithinWindow(x.PublishingDate.Value, whenDays, parameters.Timezone))
+                        IsWithinWindow(x.GetDate(DateTime.UtcNow), whenDays, parameters.Timezone))
                     .ToArray();
             }
             else
             {
                 var whenDays = WhenParser.Unpack(parameters.When, Parameters.Modes.Exclude);
                 items = inputFeed.Items.Where(x =>
-                        x.PublishingDate != null &&
-                        !IsWithinWindow(x.PublishingDate.Value, whenDays, parameters.Timezone))
+                        !IsWithinWindow(x.GetDate(DateTime.UtcNow), whenDays, parameters.Timezone))
                     .ToArray();
             }
             
             items = FilterAndLimit(items, parameters);
 
-            foreach (var item in items)
-            {
-                outputFeed.Items.Add(new Item
-                {
-                    Title = item.Title,
-                    Link = new Uri(item.Link),
-                    Body = item.Description ?? item.Content,
-                    Categories = item.Categories,
-                    PublishDate = item.PublishingDate ?? DateTime.UtcNow,
-                    Guid = item.Id,
-                    Author =  !string.IsNullOrEmpty(item.Author) ? new Author
-                    {
-                        Name = item.Author
-                    } : null,
-                    FullHtmlContent = item.Description ?? item.Content,
-                    Permalink = item.Link
-                });
-            }
-
-            var result = outputFeed.Serialize(new SerializeOption
-            {
-                Encoding = Encoding.UTF8
-            });
+            var result = CreateOutputFeed(inputFeed, items);
 
             if (parameters.Mode == Parameters.Modes.Delay)
                 await _cache.CacheAsync(parameters, nextDelay, result);
             
-            return result;
+            return new FeedResult(result);
         }
 
         internal DateTime GetLastDelayEndUtc(WhenDay[] whenDays, string timezone)
@@ -177,10 +144,10 @@ namespace RssThrottle
                     .ToArray();
 
                 if (include.Any())
-                    items = items.Where(x => x.Categories.Any(y => include.Contains(y))).ToArray();
+                    items = items.Where(x => x.GetCategories().Any(y => include.Contains(y))).ToArray();
 
                 if (exclude.Any())
-                    items = items.Where(x => x.Categories.All(y => !exclude.Contains(y))).ToArray();
+                    items = items.Where(x => x.GetCategories().All(y => !exclude.Contains(y))).ToArray();
             }
 
             if (parameters.EnforceChronology)
@@ -192,6 +159,54 @@ namespace RssThrottle
             }
 
             return items;
+        }
+
+        private static string CreateOutputFeed(Feed inputFeed, FeedItem[] outputItems)
+        {
+            var doc =
+                inputFeed.SpecificFeed.Element.Document ?? throw new InvalidOperationException();
+
+            var itemName = "item";
+            
+            var maxPublished =
+                outputItems.OrderByDescending(x => x.GetDate(DateTime.UtcNow)).FirstOrDefault()
+                    ?.GetDate(DateTime.UtcNow) ?? DateTime.UtcNow;
+
+            if (inputFeed.Type == FeedType.Atom)
+            {
+                itemName = "entry";
+                
+                // 2021-05-29 18:57:15Z
+                doc.Root?.Element(XName.Get("updated", "http://www.w3.org/2005/Atom"))?.SetValue(maxPublished.ToString("u"));
+                
+                // 2021-05-29 18:57:15Z
+                doc.Root?.Element(XName.Get("date", "http://purl.org/dc/elements/1.1/"))
+                    ?.SetValue(maxPublished.ToString("u"));
+            }
+            else
+            {
+                // Sat, 29 May 2021 18:57:15 GMT
+                doc.Root?.Element("channel")?.Element("pubDate")?.SetValue(maxPublished.ToString("R"));
+                doc.Root?.Element("channel")?.Element("lastBuildDate")?.SetValue(maxPublished.ToString("R"));
+                
+                // 2021-05-29 18:57:15Z
+                doc.Root?.Element("channel")?.Element(XName.Get("date", "http://purl.org/dc/elements/1.1/"))
+                    ?.SetValue(maxPublished.ToString("u"));
+            }
+
+            var inputElements = inputFeed.SpecificFeed.Element.Descendants()
+                .Where(x => x.Name.LocalName == itemName).ToArray();
+
+            var outputElements = outputItems.Select(x => x.SpecificItem.Element).ToArray();
+
+            var toRemove = inputElements.Except(outputElements).ToArray();
+
+            foreach (var r in toRemove)
+            {
+                r.Remove();
+            }
+            
+            return doc.ToString();
         }
     }
 }
