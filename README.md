@@ -234,6 +234,4 @@ A workaround is to have a first `Exclude` feed and use its output as the input f
 ## Development Credits
 For reading input RSS and Atom feeds: [arminreiter/FeedReader](https://github.com/arminreiter/FeedReader)
 
-For creating output RSS feeds: [shawnwildermuth/RssSyndication](https://github.com/shawnwildermuth/RssSyndication)
-
 Timezone-aware date and time calculations: [Noda Time](https://nodatime.org/)

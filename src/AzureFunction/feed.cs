@@ -5,7 +5,8 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using RssThrottle;
+using RssThrottle.Caching;
+using RssThrottle.Feeds;
 using Azure.Storage.Blobs;
 using System.Net;
 
@@ -33,8 +34,8 @@ namespace CWood
             
             return new ContentResult
             {
-                Content = result,
-                ContentType = "application/rss+xml",
+                Content = result.Content,
+                ContentType = result.MimeType,
                 StatusCode = (int)HttpStatusCode.OK
             };
         }
